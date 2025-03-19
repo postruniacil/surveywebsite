@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey</title>
+    <style>
+        body { 
+            text-align: center; 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f4; 
+            margin: 0; 
+            padding: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .welcome, .container, .thank-you { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%;
+        }
+        .container, .thank-you { 
+            display: none; 
+        }
+        h1, h2 { 
+            color: #333;
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        #imageContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            height: 80vh;
+        }
+        img {
+            width: 30vw; 
+            height: 70vh; 
+            object-fit: cover; 
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        img:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome">
+        <h1>Welcome to the Survey</h1>
+        <button onclick="startSurvey()">Start</button>
+    </div>
+    
+    <div class="container" id="surveyContainer">
+        <h2 id="questionNumber"></h2>
+        <div id="imageContainer"></div>
+        <audio id="questionAudio" autoplay></audio> <!-- Hidden audio element -->
+    </div>
+
+    <div class="thank-you" id="thankYouPage">
+        <h1>Thank You for Completing the Survey!</h1>
+        <p>Your responses have been recorded.</p>
+        <button onclick="restartSurvey()">Restart Survey</button>
+    </div>
+
+    <script>
+        const surveyData = Array.from({ length: 24 }, (_, i) => ({
+            question: i + 1,
+            images: [`${i + 1}/word1.png`, `${i + 1}/word2.png`, `${i + 1}/word3.png`],
+            audio: `${i + 1}/audio.mp3`
+        }));
+
+        let currentQuestion = 0;
+        let responses = [];
+        let questionStartTime = 0;
+
+        function startSurvey() {
+            document.querySelector('.welcome').style.display = 'none';
+            document.getElementById('surveyContainer').style.display = 'flex';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= surveyData.length) {
+                downloadCSV();
+                return;
+            }
+            document.getElementById('questionNumber').innerText = `Question ${currentQuestion + 1}`;
+            const imgContainer = document.getElementById('imageContainer');
+            imgContainer.innerHTML = '';
+
+            // Load images
+            surveyData[currentQuestion].images.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.onclick = () => selectImage(index + 1);
+                imgContainer.appendChild(img);
+            });
+
+            // Play corresponding audio
+            const audioElement = document.getElementById('questionAudio');
+            audioElement.src = surveyData[currentQuestion].audio;
+            audioElement.play().catch(error => console.log("Auto-play blocked by browser:", error));
+
+            questionStartTime = Date.now();
+        }
+
+        function selectImage(choice) {
+            let timeSpent = (Date.now() - questionStartTime) / 1000;
+            responses.push({ question: currentQuestion + 1, choice, timeSpent });
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Question,Choice,Time Spent (s)\n";
+            responses.forEach(row => {
+                csvContent += `${row.question},${row.choice},${row.timeSpent.toFixed(2)}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "survey_results.csv";
+            document.body.appendChild(link);
+            
+            if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
+                window.open(link.href);
+            } else {
+                link.click();
+            }
+
+            document.body.removeChild(link);
+            showThankYouPage();
+        }
+
+        function showThankYouPage() {
+            document.getElementById('surveyContainer').style.display = 'none';
+            document.getElementById('thankYouPage').style.display = 'flex';
+        }
+
+        function restartSurvey() {
+            currentQuestion = 0;
+            responses = [];
+            document.getElementById('thankYouPage').style.display = 'none';
+            document.querySelector('.welcome').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
