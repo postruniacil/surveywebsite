@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu</title>
+    <style>
+        body { 
+            text-align: center; 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f4; 
+            margin: 0; 
+            padding: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        h1 {
+            color: #333;
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            border-radius: 5px;
+            transition: 0.3s;
+            width: 250px;
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>Select a Page</h1>
+        <button onclick="window.location.href='a_learn_male/index.html'">a_learn_male</button>
+        <button onclick="window.location.href='a_learn_female/index.html'">a_learn_female</button>
+        <button onclick="window.location.href='a_exam_male/index.html'">a_exam_male</button>
+        <button onclick="window.location.href='a_exam_female/index.html'">a_exam_female</button>
+        <button onclick="window.location.href='b_learn_male/index.html'">b_learn_male</button>
+        <button onclick="window.location.href='b_learn_female/index.html'">b_learn_female</button>
+        <button onclick="window.location.href='b_exam_male/index.html'">b_exam_male</button>
+        <button onclick="window.location.href='b_exam_female/index.html'">b_exam_female</button>
+    </div>
+</body>
+</html>
