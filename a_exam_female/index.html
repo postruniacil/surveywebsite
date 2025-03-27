@@ -81,86 +81,118 @@
 
     <script>
         const surveyData = Array.from({ length: 16 }, (_, i) => ({
-            question: i + 1,
-            images: [`${i + 1}/word1.png`, `${i + 1}/word2.png`, `${i + 1}/word3.png`],
-            audio: `${i + 1}/audio.mp3`
-        }));
+    question: i + 1,
+    images: [`${i + 1}/word1.png`, `${i + 1}/word2.png`, `${i + 1}/word3.png`],
+    audio: `${i + 1}/audio.mp3`
+}));
 
-        let currentQuestion = 0;
-        let responses = [];
-        let questionStartTime = 0;
+let currentQuestion = 0;
+let responses = [];
+let questionStartTime = 0;
+let preloadedImages = {};
+let preloadedAudio = {};
 
-        function startSurvey() {
-            document.querySelector('.welcome').style.display = 'none';
-            document.getElementById('surveyContainer').style.display = 'flex';
-            loadQuestion();
+// **Preload All Images and Audio at the Start**
+function preloadAssets() {
+    surveyData.forEach((data, index) => {
+        data.images.forEach((src, imgIndex) => {
+            const img = new Image();
+            img.src = src; // Load image
+            preloadedImages[`${index + 1}-${imgIndex + 1}`] = img;
+        });
+
+        const audio = new Audio();
+        audio.src = data.audio; // Load audio
+        preloadedAudio[index + 1] = audio;
+    });
+}
+
+// **Start Survey and Load First Question**
+function startSurvey() {
+    document.querySelector('.welcome').style.display = 'none';
+    document.getElementById('surveyContainer').style.display = 'flex';
+    loadQuestion();
+}
+
+// **Load Current Question from Preloaded Assets**
+function loadQuestion() {
+    if (currentQuestion >= surveyData.length) {
+        downloadCSV();
+        return;
+    }
+
+    document.getElementById('questionNumber').innerText = `Question ${currentQuestion + 1}`;
+    const imgContainer = document.getElementById('imageContainer');
+    imgContainer.innerHTML = '';
+
+    // Use preloaded images
+    for (let i = 1; i <= 3; i++) {
+        let key = `${currentQuestion + 1}-${i}`;
+        if (preloadedImages[key]) {
+            let img = preloadedImages[key].cloneNode(); // Use preloaded image
+            img.onclick = () => selectImage(i);
+            imgContainer.appendChild(img);
         }
+    }
 
-        function loadQuestion() {
-            if (currentQuestion >= surveyData.length) {
-                downloadCSV();
-                return;
-            }
-            document.getElementById('questionNumber').innerText = `Question ${currentQuestion + 1}`;
-            const imgContainer = document.getElementById('imageContainer');
-            imgContainer.innerHTML = '';
+    // Use preloaded audio
+    const audioElement = document.getElementById('questionAudio');
+    if (preloadedAudio[currentQuestion + 1]) {
+        audioElement.src = preloadedAudio[currentQuestion + 1].src;
+        audioElement.play().catch(error => console.log("Auto-play blocked by browser:", error));
+    }
 
-            // Load images
-            surveyData[currentQuestion].images.forEach((src, index) => {
-                const img = document.createElement('img');
-                img.src = src;
-                img.onclick = () => selectImage(index + 1);
-                imgContainer.appendChild(img);
-            });
+    questionStartTime = Date.now();
+}
 
-            // Play corresponding audio
-            const audioElement = document.getElementById('questionAudio');
-            audioElement.src = surveyData[currentQuestion].audio;
-            audioElement.play().catch(error => console.log("Auto-play blocked by browser:", error));
+// **Handle Image Selection**
+function selectImage(choice) {
+    let timeSpent = (Date.now() - questionStartTime) / 1000;
+    responses.push({ question: currentQuestion + 1, choice, timeSpent });
+    currentQuestion++;
+    loadQuestion();
+}
 
-            questionStartTime = Date.now();
-        }
+// **Download CSV**
+function downloadCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,Question,Choice,Time Spent (s)\n";
+    responses.forEach(row => {
+        csvContent += `${row.question},${row.choice},${row.timeSpent.toFixed(2)}\n`;
+    });
 
-        function selectImage(choice) {
-            let timeSpent = (Date.now() - questionStartTime) / 1000;
-            responses.push({ question: currentQuestion + 1, choice, timeSpent });
-            currentQuestion++;
-            loadQuestion();
-        }
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "survey_results.csv";
+    document.body.appendChild(link);
 
-        function downloadCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,Question,Choice,Time Spent (s)\n";
-            responses.forEach(row => {
-                csvContent += `${row.question},${row.choice},${row.timeSpent.toFixed(2)}\n`;
-            });
+    if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
+        window.open(link.href);
+    } else {
+        link.click();
+    }
 
-            const blob = new Blob([csvContent], { type: "text/csv" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "survey_results.csv";
-            document.body.appendChild(link);
-            
-            if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
-                window.open(link.href);
-            } else {
-                link.click();
-            }
+    document.body.removeChild(link);
+    showThankYouPage();
+}
 
-            document.body.removeChild(link);
-            showThankYouPage();
-        }
+// **Show Thank You Page**
+function showThankYouPage() {
+    document.getElementById('surveyContainer').style.display = 'none';
+    document.getElementById('thankYouPage').style.display = 'flex';
+}
 
-        function showThankYouPage() {
-            document.getElementById('surveyContainer').style.display = 'none';
-            document.getElementById('thankYouPage').style.display = 'flex';
-        }
+// **Restart Survey**
+function restartSurvey() {
+    currentQuestion = 0;
+    responses = [];
+    document.getElementById('thankYouPage').style.display = 'none';
+    document.querySelector('.welcome').style.display = 'flex';
+}
 
-        function restartSurvey() {
-            currentQuestion = 0;
-            responses = [];
-            document.getElementById('thankYouPage').style.display = 'none';
-            document.querySelector('.welcome').style.display = 'flex';
-        }
+// **Preload Everything on Page Load**
+preloadAssets();
+
     </script>
 </body>
 </html>
