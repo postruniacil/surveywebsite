@@ -5,91 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Survey</title>
     <style>
-        body {
-    text-align: center;
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-.welcome, .container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-}
-
-.container {
-    display: none;
-}
-
-h1, h2 {
-    color: #333;
-}
-
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: 0.3s;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-/* 🔥 Ensures images fit all screen sizes */
-#imageContainer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    width: 90vw; /* Ensures it fits within the screen */
-    max-width: 1200px;
-}
-
+        body { 
+            text-align: center; 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f4; 
+            margin: 0; 
+            padding: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .welcome, .container, .thank-you { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%;
+        }
+        .container, .thank-you { 
+            display: none; 
+        }
+        h1, h2 { 
+            color: #333;
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        #imageContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            height: 80vh;
+        }
 img {
-    width: 100%; /* Make sure images scale properly */
-    max-width: 30vw; /* Each image takes up 30% of the screen width */
+    width: 30vw; 
     height: auto; /* Maintain aspect ratio */
-    object-fit: contain; /* Ensures images are never cropped */
+    max-height: 70vh;
+    object-fit: contain; /* Ensure the image is fully visible */
     cursor: pointer;
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
-img:hover {
-    transform: scale(1.05);
-    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* 🔥 Ensures no cropping or overflow on iPads & mobile */
-@media (max-width: 1024px) { /* iPads & tablets */
-    #imageContainer {
-        flex-direction: column; /* Stack images vertically on smaller screens */
-        gap: 10px;
-    }
-    img {
-        max-width: 80vw; /* Make images take up more space */
-    }
-}
-
-@media (max-width: 600px) { /* Phones */
-    img {
-        max-width: 90vw;
-    }
-}
     </style>
 </head>
 <body>
@@ -112,158 +83,86 @@ img:hover {
 
     <script>
         const surveyData = Array.from({ length: 16 }, (_, i) => ({
-    question: i + 1,
-    images: [`${i + 1}/word1`, `${i + 1}/word2`, `${i + 1}/word3`], // No extensions
-    audio: `${i + 1}/audio`
-}));
+            question: i + 1,
+            images: [`${i + 1}/word1.png`, `${i + 1}/word2.png`, `${i + 1}/word3.png`],
+            audio: `${i + 1}/audio.mp3`
+        }));
 
-let currentQuestion = 0;
-let responses = [];
-let questionStartTime = 0;
-let preloadedImages = {};
-let preloadedAudio = {};
-let totalAssets = 0;
-let loadedAssets = 0;
+        let currentQuestion = 0;
+        let responses = [];
+        let questionStartTime = 0;
 
-// **Try JPG, PNG, or WebP**
-async function getValidImagePath(basePath) {
-    const extensions = [".webp", ".png", ".jpg"];
-    for (let ext of extensions) {
-        if (await checkFileExists(basePath + ext)) return basePath + ext;
-    }
-    return null;
-}
+        function startSurvey() {
+            document.querySelector('.welcome').style.display = 'none';
+            document.getElementById('surveyContainer').style.display = 'flex';
+            loadQuestion();
+        }
 
-// **Check if File Exists (Works in Hosted & Local Mode)**
-async function checkFileExists(url) {
-    try {
-        const response = await fetch(url, { method: "HEAD" });
-        return response.ok;
-    } catch {
-        return false;
-    }
-}
-
-// **Preload All Images and Audio**
-async function preloadAssets() {
-    for (let i = 0; i < surveyData.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            let basePath = surveyData[i].images[j];
-            let src = await getValidImagePath(basePath);
-            if (src) {
-                let img = new Image();
-                img.src = src;
-                img.onload = assetLoaded;
-                preloadedImages[`${i + 1}-${j + 1}`] = img;
-                totalAssets++;
+        function loadQuestion() {
+            if (currentQuestion >= surveyData.length) {
+                downloadCSV();
+                return;
             }
+            document.getElementById('questionNumber').innerText = `Question ${currentQuestion + 1}`;
+            const imgContainer = document.getElementById('imageContainer');
+            imgContainer.innerHTML = '';
+
+            // Load images
+            surveyData[currentQuestion].images.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.onclick = () => selectImage(index + 1);
+                imgContainer.appendChild(img);
+            });
+
+            // Play corresponding audio
+            const audioElement = document.getElementById('questionAudio');
+            audioElement.src = surveyData[currentQuestion].audio;
+            audioElement.play().catch(error => console.log("Auto-play blocked by browser:", error));
+
+            questionStartTime = Date.now();
         }
 
-        // Preload audio
-        let audioSrc = surveyData[i].audio + ".mp3";
-        if (await checkFileExists(audioSrc)) {
-            let audio = new Audio(audioSrc);
-            audio.oncanplaythrough = assetLoaded;
-            preloadedAudio[i + 1] = audio;
-            totalAssets++;
+        function selectImage(choice) {
+            let timeSpent = (Date.now() - questionStartTime) / 1000;
+            responses.push({ question: currentQuestion + 1, choice, timeSpent });
+            currentQuestion++;
+            loadQuestion();
         }
-    }
-}
 
-// **Track When All Assets Are Loaded**
-function assetLoaded() {
-    loadedAssets++;
-    if (loadedAssets === totalAssets) {
-        console.log("✅ All assets preloaded!");
-    }
-}
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Question,Choice,Time Spent (s)\n";
+            responses.forEach(row => {
+                csvContent += `${row.question},${row.choice},${row.timeSpent.toFixed(2)}\n`;
+            });
 
-// **Start Survey After Preloading**
-function startSurvey() {
-    document.querySelector('.welcome').style.display = 'none';
-    document.getElementById('surveyContainer').style.display = 'flex';
-    loadQuestion();
-}
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "survey_results.csv";
+            document.body.appendChild(link);
+            
+            if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
+                window.open(link.href);
+            } else {
+                link.click();
+            }
 
-// **Load Question from Preloaded Assets**
-function loadQuestion() {
-    if (currentQuestion >= surveyData.length) {
-        downloadCSV();
-        return;
-    }
-
-    document.getElementById('questionNumber').innerText = `Question ${currentQuestion + 1}`;
-    const imgContainer = document.getElementById('imageContainer');
-    imgContainer.innerHTML = '';
-
-    // Use preloaded images
-    for (let i = 1; i <= 3; i++) {
-        let key = `${currentQuestion + 1}-${i}`;
-        if (preloadedImages[key]) {
-            let img = preloadedImages[key].cloneNode();
-            img.onclick = () => selectImage(i);
-            imgContainer.appendChild(img);
+            document.body.removeChild(link);
+            showThankYouPage();
         }
-    }
 
-    // Use preloaded audio
-    const audioElement = document.getElementById('questionAudio');
-    if (preloadedAudio[currentQuestion + 1]) {
-        audioElement.src = preloadedAudio[currentQuestion + 1].src;
-        audioElement.play().catch(error => console.log("Auto-play blocked by browser:", error));
-    }
+        function showThankYouPage() {
+            document.getElementById('surveyContainer').style.display = 'none';
+            document.getElementById('thankYouPage').style.display = 'flex';
+        }
 
-    questionStartTime = Date.now();
-}
-
-// **Handle Image Selection**
-function selectImage(choice) {
-    let timeSpent = (Date.now() - questionStartTime) / 1000;
-    responses.push({ question: currentQuestion + 1, choice, timeSpent });
-    currentQuestion++;
-    loadQuestion();
-}
-
-// **Download CSV**
-function downloadCSV() {
-    let csvContent = "data:text/csv;charset=utf-8,Question,Choice,Time Spent (s)\n";
-    responses.forEach(row => {
-        csvContent += `${row.question},${row.choice},${row.timeSpent.toFixed(2)}\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "survey_results.csv";
-    document.body.appendChild(link);
-
-    if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
-        window.open(link.href);
-    } else {
-        link.click();
-    }
-
-    document.body.removeChild(link);
-    showThankYouPage();
-}
-
-// **Show Thank You Page**
-function showThankYouPage() {
-    document.getElementById('surveyContainer').style.display = 'none';
-    document.getElementById('thankYouPage').style.display = 'flex';
-}
-
-// **Restart Survey**
-function restartSurvey() {
-    currentQuestion = 0;
-    responses = [];
-    document.getElementById('thankYouPage').style.display = 'none';
-    document.querySelector('.welcome').style.display = 'flex';
-}
-
-// **Start Preloading as Soon as Page Loads**
-preloadAssets();
-
+        function restartSurvey() {
+            currentQuestion = 0;
+            responses = [];
+            document.getElementById('thankYouPage').style.display = 'none';
+            document.querySelector('.welcome').style.display = 'flex';
+        }
     </script>
 </body>
 </html>
